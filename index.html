@@ -437,8 +437,12 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchXitunAirQuality(false);
-            // Auto-refresh every 10 minutes
-            setInterval(() => fetchXitunAirQuality(false), 10 * 60 * 1000);
+            
+            // 設定每 10 分鐘 (10 * 60 * 1000 毫秒) 自動執行一次同步
+            setInterval(() => {
+                console.log("執行 10 分鐘例行同步...");
+                fetchXitunAirQuality(false);
+            }, 10 * 60 * 1000);
         });
 
         /**
@@ -530,8 +534,9 @@
          */
         async function fetchFromWebWidgetHtml() {
             try {
-                // 直接向指定的官方 WebWidget.aspx 發送請求解析
-                const targetUrl = 'https://airtw.moenv.gov.tw/AirQuality_APIs/WebWidget.aspx?site=25';
+                // 【關鍵更新】：加入時間戳記 (Timestamp) 破除 Proxy 快取，確保每次抓的都是當下最新鮮的網頁
+                const now = new Date().getTime();
+                const targetUrl = `https://airtw.moenv.gov.tw/AirQuality_APIs/WebWidget.aspx?site=25&_t=${now}`;
                 const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
                 
                 const controller = new AbortController();
@@ -543,18 +548,29 @@
                 const json = await res.json();
                 const html = json.contents;
                 
-                // 尋找 HTML 中的 AQI 數值區塊（環境部 WebWidget 常將數字放在 val 類別中）
-                const aqiMatch = html.match(/<div[^>]*class="val"[^>]*>(\d{1,3})<\/div>/i) || html.match(/AQI[\s\S]*?(\d{1,3})/i);
+                // 更精準的解析：尋找 WebWidget HTML 中的 AQI 數值區塊 (<div class="val">數值</div>)
+                const aqiMatch = html.match(/<div[^>]*class=["']val["'][^>]*>\s*(\d{1,3})\s*<\/div>/i) || html.match(/AQI[\s\S]{1,50}?(\d{1,3})/i);
                 
                 if (aqiMatch && aqiMatch[1]) {
+                    // 擷取網頁上的發布時間
                     const timeMatch = html.match(/(\d{4}\/\d{2}\/\d{2}\s\d{2}:\d{2})/);
                     const shortTime = timeMatch && timeMatch[1] ? `${timeMatch[1].split(' ')[1]} 發布` : '即時同步';
 
+                    // 擷取主要污染物
+                    const polMatch = html.match(/指標污染物[：:]\s*([A-Za-z0-9.]+)/);
+                    let pollutantName = '細懸浮微粒';
+                    if (polMatch && polMatch[1]) {
+                        if (polMatch[1].includes('PM2.5')) pollutantName = '細懸浮微粒';
+                        else if (polMatch[1].includes('PM10')) pollutantName = '懸浮微粒';
+                        else if (polMatch[1].includes('O3')) pollutantName = '臭氧';
+                        else pollutantName = polMatch[1];
+                    }
+
                     return {
                         aqi: parseInt(aqiMatch[1], 10),
-                        pollutant: '細懸浮微粒', 
+                        pollutant: pollutantName, 
                         publishTime: shortTime,
-                        sourceLabel: 'WebWidget 即時同步'
+                        sourceLabel: 'WebWidget 官方同步'
                     };
                 }
             } catch (e) {
@@ -577,17 +593,17 @@
                 // 狀態顯示更新中...
                 document.getElementById('update-time-text').textContent = '與環境部同步中...';
 
-                // 1. 優先嘗試官方開放資料 API (CORS 安全通道)
-                const moenvData = await fetchFromMoenvOfficial();
-                if (moenvData) {
-                    renderWidgetData(moenvData);
-                    return;
-                }
-
-                // 2. 若 API 失敗，直接爬取使用者指定的 WebWidget.aspx 網頁
+                // 1. 【關鍵修改】優先爬取使用者指定的 WebWidget.aspx 網頁 (確保與肉眼所見 100% 同步)
                 const widgetData = await fetchFromWebWidgetHtml();
                 if (widgetData) {
                     renderWidgetData(widgetData);
+                    return;
+                }
+
+                // 2. 若網頁爬取代理伺服器失敗，再嘗試官方開放資料 API 作為備案
+                const moenvData = await fetchFromMoenvOfficial();
+                if (moenvData) {
+                    renderWidgetData(moenvData);
                     return;
                 }
 
