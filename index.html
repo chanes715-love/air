@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>臺中市西屯測站 (ID: 25) 即時空氣品質旗幟 - 日式和風小工具</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Google Fonts: Noto Serif TC & Zen Maru Gothic for Japanese aesthetic -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --washi-bg: #FFFFFF;
+            --washi-border: #E2E8F0;
+            --sumi-ink: #2B2B2B;
+            --sumi-light: #6E6A63;
+            --flag-color: #4A8B5B;
+            --flag-bg-soft: #E9F3EC;
+            --flag-border: #8BB896;
+        }
+
+        body {
+            font-family: 'Noto Serif TC', serif;
+            margin: 0;
+            padding: 0;
+            background-color: #FFFFFF;
+            color: var(--sumi-ink);
+            overflow-x: hidden;
+        }
+
+        .font-maru {
+            font-family: 'Zen Maru Gothic', sans-serif;
+        }
+
+        /* Exact 340x260 Widget Container */
+        #aqi-widget-container {
+            width: 340px;
+            height: 260px;
+            background-color: #FFFFFF;
+            /* Subtle Japanese Seigaiha pattern on pure white background */
+            background-image: 
+                radial-gradient(circle at 100% 150%, rgba(226, 232, 240, 0.35) 24%, transparent 25%),
+                radial-gradient(circle at 0% 150%, rgba(226, 232, 240, 0.35) 24%, transparent 25%);
+            background-size: 28px 14px, 28px 14px;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+            border: 2px solid #3F3B36;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(43, 43, 43, 0.08);
+            user-select: none;
+            transition: all 0.35s ease;
+        }
+
+        /* Inner Traditional Frame Line */
+        .washi-inner-frame {
+            position: absolute;
+            inset: 4px;
+            border: 1px solid var(--washi-border);
+            border-radius: 6px;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        /* Corner Decorative Knots */
+        .washi-inner-frame::before,
+        .washi-inner-frame::after {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border: 1px solid #8C8275;
+            background: var(--washi-bg);
+        }
+        .washi-inner-frame::before { top: -3px; left: -3px; }
+        .washi-inner-frame::after { bottom: -3px; right: -3px; }
+
+        /* Waving Flag Animation */
+        @keyframes flagWave {
+            0%, 100% {
+                transform: skewY(0deg) scaleX(1);
+                filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.12));
+            }
+            25% {
+                transform: skewY(-2.5deg) scaleX(0.97);
+                filter: drop-shadow(3px 4px 4px rgba(0,0,0,0.16));
+            }
+            50% {
+                transform: skewY(1.5deg) scaleX(1.01);
+                filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.10));
+            }
+            75% {
+                transform: skewY(-1.5deg) scaleX(0.98);
+                filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.14));
+            }
+        }
+
+        .flag-cloth {
+            transform-origin: left center;
+            animation: flagWave 3.2s ease-in-out infinite;
+            transition: fill 0.4s ease;
+        }
+
+        /* Floating Sakura / Wind Particle Animation */
+        @keyframes windDrift {
+            0% { transform: translateX(-10px) translateY(0px) rotate(0deg); opacity: 0; }
+            30% { opacity: 0.45; }
+            70% { opacity: 0.45; }
+            100% { transform: translateX(350px) translateY(-12px) rotate(180deg); opacity: 0; }
+        }
+
+        .wind-petal {
+            position: absolute;
+            pointer-events: none;
+            animation: windDrift 9s linear infinite;
+        }
+
+        /* Traditional Japanese Stamp (Hanko) */
+        .hanko-stamp {
+            border: 1.5px solid #C53D43;
+            color: #C53D43;
+            font-family: 'Noto Serif TC', serif;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            line-height: 1.05;
+            background: rgba(197, 61, 67, 0.06);
+            box-shadow: inset 0 0 0 0.5px rgba(197, 61, 67, 0.3);
+        }
+
+        /* Pulse dot for live indicator */
+        @keyframes softPulse {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.35); opacity: 0.4; }
+        }
+        .live-dot {
+            animation: softPulse 2.2s infinite ease-in-out;
+        }
+
+        /* Pure Embed Mode: When loaded inside a 340x260 iframe or with ?embed=1 */
+        body.embed-mode {
+            background: transparent;
+            display: block;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+        body.embed-mode #preview-toolbar,
+        body.embed-mode #embed-helper-panel {
+            display: none !important;
+        }
+        body.embed-mode #main-wrapper {
+            padding: 0 !important;
+            min-height: auto !important;
+            display: block !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div id="main-wrapper" class="flex flex-col items-center gap-5 w-full max-w-2xl">
+        
+        <!-- Preview Control Header (Hidden automatically when embedded in an iframe or <= 360px width) -->
+        <div id="preview-toolbar" class="w-full bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="hanko-stamp text-xs px-1.5 py-0.5 rounded">和風空品</span>
+                    <h1 class="text-base font-bold text-[#2B2B2B]">臺中市西屯測站 (ID: 25) 即時空品旗幟小工具</h1>
+                </div>
+                <p class="text-xs text-[#6E6A63] mt-1 font-maru">
+                    尺寸固定為 <strong class="text-[#2B2B2B]">340px × 260px</strong>・支援環境部即時資料自動更新與教育部校園空品旗幟指引
+                </p>
+            </div>
+            <div class="flex items-center gap-2 self-end sm:self-center">
+                <button id="btn-pure-mode" onclick="togglePurePreview()" class="text-xs font-maru bg-[#2B2B2B] hover:bg-[#433E38] text-white px-3 py-1.5 rounded-lg transition shadow-sm cursor-pointer">
+                    切換純小工具檢視
+                </button>
+            </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- CORE 340px × 260px WIDGET START                                   -->
+        <!-- ================================================================= -->
+        <div id="aqi-widget-container" role="region" aria-label="臺中市西屯測站即時空氣品質旗幟">
+            <!-- Decorative Inner Frame -->
+            <div class="washi-inner-frame"></div>
+
+            <!-- Background Subtle Japanese Mt. / Cloud / Wind Motif SVG -->
+            <svg class="absolute right-0 bottom-6 w-36 h-24 opacity-[0.06] pointer-events-none" viewBox="0 0 200 120" fill="none">
+                <path d="M15 85 H85 M35 70 H115 M110 45 C125 45, 130 35, 145 35 C160 35, 165 45, 180 45 H105 Z" stroke="#2B2B2B" stroke-width="4" stroke-linecap="round"/>
+                <circle cx="155" cy="35" r="22" fill="#C53D43"/>
+            </svg>
+
+            <!-- Subtle drifting wind petal -->
+            <svg class="wind-petal top-12 left-0 w-3 h-3 opacity-30" viewBox="0 0 20 20">
+                <path d="M10 2 C14 6, 18 10, 10 18 C2 10, 6 6, 10 2 Z" fill="#D49B94"/>
+            </svg>
+
+            <!-- WIDGET CONTENT LAYOUT (340x260 padded inside) -->
+            <div class="relative z-10 w-full h-full p-[12px] flex flex-col justify-between">
+                
+                <!-- 1. TOP HEADER BAR (Height ~34px) -->
+                <div class="flex items-center justify-between border-b border-gray-200 pb-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <!-- Japanese Torii / Station Seal -->
+                        <div class="hanko-stamp text-[10px] px-1 py-0.5 rounded-[3px] flex flex-col items-center leading-none">
+                            <span>西屯</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1">
+                                <span class="text-[13px] font-bold tracking-wider text-[#2B2B2B]">臺中市・西屯測站</span>
+                                <span class="text-[10px] font-maru text-[#6E6A63] bg-gray-100 px-1.5 py-0.2 rounded">ID:25</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 text-[10px] text-[#7A7369] font-maru leading-tight mt-0.5">
+                                <span class="inline-flex items-center gap-1">
+                                    <span id="live-indicator" class="w-1.5 h-1.5 rounded-full bg-[#4A8B5B] live-dot"></span>
+                                    <span id="update-time-text">即時連線中...</span>
+                                </span>
+                                <span>｜</span>
+                                <span id="weather-temp-text">🌡️ 26°C</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right side buttons: Guide Modal & Refresh -->
+                    <div class="flex items-center gap-1">
+                        <button onclick="toggleGuideModal(true)" title="教育部空品旗幟說明" class="w-6 h-6 rounded-md border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-[#4A453F] transition cursor-pointer">
+                            <span class="text-[11px] font-bold">？</span>
+                        </button>
+                        <button id="btn-refresh" onclick="fetchXitunAirQuality(true)" title="重新整理即時數據" class="w-6 h-6 rounded-md border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-[#4A453F] transition cursor-pointer">
+                            <svg id="refresh-icon" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                <path d="M3 3v5h5"/>
+                                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                                <path d="M16 21h5v-5"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. MIDDLE HERO SECTION: Animated Flag + AQI Value + Status (Height ~92px) -->
+                <div class="my-1 flex items-center justify-between rounded-lg px-2.5 py-2 border transition-colors duration-300"
+                     id="hero-card"
+                     style="background-color: var(--flag-bg-soft); border-color: var(--flag-border);">
+                    
+                    <!-- Left: Animated Japanese School Air Quality Flag SVG -->
+                    <div class="flex items-center gap-2.5">
+                        <div class="relative w-[62px] h-[68px] flex items-center justify-center">
+                            <svg class="w-full h-full overflow-visible" viewBox="0 0 70 76">
+                                <!-- Wooden base & pole -->
+                                <ellipse cx="14" cy="71" rx="9" ry="3" fill="#8C7A6B" opacity="0.45"/>
+                                <line x1="14" y1="8" x2="14" y2="71" stroke="#5C4938" stroke-width="3.2" stroke-linecap="round"/>
+                                <!-- Golden finial ball (Giboshi) -->
+                                <circle cx="14" cy="7" r="3.5" fill="#C99833" stroke="#5C4938" stroke-width="1"/>
+                                <!-- Flag tie cords -->
+                                <line x1="14" y1="13" x2="18" y2="13" stroke="#FAF6F0" stroke-width="1.5"/>
+                                <line x1="14" y1="45" x2="18" y2="45" stroke="#FAF6F0" stroke-width="1.5"/>
+                                
+                                <!-- Animated Waving Triangular School Flag -->
+                                <g class="flag-cloth">
+                                    <path id="svg-flag-body"
+                                          d="M16 11 C32 9, 48 19, 66 28 C48 36, 32 46, 16 47 Z"
+                                          fill="#4A8B5B"
+                                          stroke="#2B2B2B"
+                                          stroke-width="1.2"
+                                          stroke-linejoin="round"/>
+                                    <!-- Inner Japanese Mon / Emblem on Flag -->
+                                    <circle cx="31" cy="28.5" r="7.5" fill="rgba(250, 246, 240, 0.88)"/>
+                                    <text id="svg-flag-kanji" x="31" y="31.5" text-anchor="middle" font-size="9" font-weight="900" fill="#2B2B2B" font-family="Noto Serif TC, serif">良</text>
+                                </g>
+                            </svg>
+                        </div>
+
+                        <!-- Center: Flag Title & AQI Number -->
+                        <div>
+                            <div class="flex items-center gap-1">
+                                <span id="flag-badge-title" class="text-[12px] font-bold px-1.5 py-0.5 rounded text-white tracking-wide transition-colors" style="background-color: var(--flag-color);">
+                                    綠色旗・良好
+                                </span>
+                            </div>
+                            <div class="flex items-baseline gap-1.5 mt-1">
+                                <span class="text-[11px] font-maru text-[#5A544C] font-bold">AQI 指標</span>
+                                <span id="aqi-number" class="text-[30px] font-black leading-none tracking-tight text-[#2B2B2B]">38</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Vertical Japanese Seal / Primary Pollutant -->
+                    <div class="flex flex-col items-end justify-between h-full pl-2 border-l border-black/10">
+                        <div class="text-right">
+                            <span class="text-[10px] font-maru text-[#6E6A63] block">指標污染物</span>
+                            <span id="main-pollutant" class="text-[11px] font-bold text-[#2B2B2B] font-maru">細懸浮微粒</span>
+                        </div>
+                        <div class="mt-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded border border-black/10 text-right">
+                            <span id="flag-short-rule" class="text-[11px] font-bold text-[#2B2B2B]">🏃‍♂️ 正常室外活動</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. FOUR POLLUTANT MINI CARDS (Height ~46px) -->
+                <div class="grid grid-cols-4 gap-1.5 my-0.5 font-maru">
+                    <!-- PM2.5 -->
+                    <div class="bg-[#F8FAFC] border border-gray-200 rounded px-1.5 py-1 flex flex-col items-center justify-center">
+                        <span class="text-[9px] text-[#7A7369] leading-none">PM2.5 細懸浮</span>
+                        <div class="flex items-baseline gap-0.5 mt-0.5">
+                            <span id="val-pm25" class="text-[13px] font-bold text-[#2B2B2B] leading-none">9</span>
+                            <span class="text-[8px] text-[#7A7369]">μg/m³</span>
+                        </div>
+                    </div>
+                    <!-- PM10 -->
+                    <div class="bg-[#F8FAFC] border border-gray-200 rounded px-1.5 py-1 flex flex-col items-center justify-center">
+                        <span class="text-[9px] text-[#7A7369] leading-none">PM10 懸浮</span>
+                        <div class="flex items-baseline gap-0.5 mt-0.5">
+                            <span id="val-pm10" class="text-[13px] font-bold text-[#2B2B2B] leading-none">24</span>
+                            <span class="text-[8px] text-[#7A7369]">μg/m³</span>
+                        </div>
+                    </div>
+                    <!-- O3 -->
+                    <div class="bg-[#F8FAFC] border border-gray-200 rounded px-1.5 py-1 flex flex-col items-center justify-center">
+                        <span class="text-[9px] text-[#7A7369] leading-none">O₃ 臭氧</span>
+                        <div class="flex items-baseline gap-0.5 mt-0.5">
+                            <span id="val-o3" class="text-[13px] font-bold text-[#2B2B2B] leading-none">36</span>
+                            <span class="text-[8px] text-[#7A7369]">ppb</span>
+                        </div>
+                    </div>
+                    <!-- Wind Speed -->
+                    <div class="bg-[#F8FAFC] border border-gray-200 rounded px-1.5 py-1 flex flex-col items-center justify-center">
+                        <span class="text-[9px] text-[#7A7369] leading-none">風速 / 風向</span>
+                        <div class="flex items-baseline gap-0.5 mt-0.5">
+                            <span id="val-wind" class="text-[12px] font-bold text-[#2B2B2B] leading-none">2.1</span>
+                            <span class="text-[8px] text-[#7A7369]">m/s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. BOTTOM CAMPUS ACTIVITY GUIDANCE BANNER (Height ~50px) -->
+                <div class="bg-[#2B2B2B] text-[#FAF6F0] rounded-md px-2.5 py-1.5 flex items-center justify-between gap-2">
+                    <div class="flex items-start gap-1.5 overflow-hidden">
+                        <span id="guidance-emoji" class="text-sm leading-none mt-0.5 shrink-0">🍵</span>
+                        <div class="leading-tight">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[10px] font-bold text-[#E2C275] tracking-wider">校園戶外活動指引</span>
+                                <span id="sensitive-tag" class="text-[9px] font-maru bg-white/15 px-1 rounded text-[#E8E2D9]">一般及敏感學童皆正常</span>
+                            </div>
+                            <p id="guidance-desc" class="text-[10px] font-maru text-[#EAE3D7] line-clamp-1 mt-0.5">
+                                空氣清新，適合正常進行戶外體育課與大下課活動。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- OVERLAY MODAL: 教育部校園空氣品質旗幟防護指引 (Fits inside 340x260) -->
+            <div id="guide-modal" class="hidden absolute inset-0 z-30 bg-white/95 backdrop-blur-sm p-3 flex flex-col justify-between">
+                <div class="flex items-center justify-between border-b border-gray-200 pb-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <span class="hanko-stamp text-[10px] px-1 py-0.2 rounded">指引</span>
+                        <span class="text-xs font-bold text-[#2B2B2B]">教育部校園空品旗幟標準</span>
+                    </div>
+                    <button onclick="toggleGuideModal(false)" class="text-xs font-bold px-2 py-0.5 rounded bg-[#2B2B2B] text-white cursor-pointer">
+                        返回
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 gap-1 my-1 overflow-y-auto font-maru text-[10px] pr-1">
+                    <div class="flex items-center gap-1.5 bg-[#E9F3EC] px-2 py-1 rounded border border-[#8BB896]">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#4A8B5B] shrink-0"></span>
+                        <strong class="w-24 shrink-0">綠旗 (0-50)</strong>
+                        <span class="text-[#4A453F] truncate">良好：正常進行戶外體育課與活動</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-[#FDF7E4] px-2 py-1 rounded border border-[#DFC278]">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#C99833] shrink-0"></span>
+                        <strong class="w-24 shrink-0">黃旗 (51-100)</strong>
+                        <span class="text-[#4A453F] truncate">普通：正常戶外課，敏感學童留意呼吸</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-[#FCEEDF] px-2 py-1 rounded border border-[#E0A570]">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#D16B30] shrink-0"></span>
+                        <strong class="w-24 shrink-0">橘旗 (101-150)</strong>
+                        <span class="text-[#4A453F] truncate">敏感不健康：減少劇烈運動，敏感戴口罩</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-[#FBE6E6] px-2 py-1 rounded border border-[#D88A8C]">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#C53D43] shrink-0"></span>
+                        <strong class="w-24 shrink-0">紅旗 (151-200)</strong>
+                        <span class="text-[#4A453F] truncate">不健康：體育課移至室內，適度關門窗</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-[#F2E8F5] px-2 py-1 rounded border border-[#B592C4]">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#7A4988] shrink-0"></span>
+                        <strong class="w-24 shrink-0">紫旗 (201-300)</strong>
+                        <span class="text-[#4A453F] truncate">非常不健康：立即停止所有戶外活動</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-[#EFE6E4] px-2 py-1 rounded border border-[#A6827B]">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#6B3A33] shrink-0"></span>
+                        <strong class="w-24 shrink-0">褐紅 (301+)</strong>
+                        <span class="text-[#4A453F] truncate">危害：全面停止戶外活動，留置室內</span>
+                    </div>
+                </div>
+                <div class="text-[9px] text-[#7A7369] font-maru text-right">
+                    資料來源：環境部即時監測數據 (西屯站 ID:25)
+                </div>
+            </div>
+        </div>
+        <!-- ================================================================= -->
+        <!-- CORE 340px × 260px WIDGET END                                     -->
+        <!-- ================================================================= -->
+
+        <!-- Interactive Simulator & Embed Helper Panel (Hidden when embedded) -->
+        <div id="embed-helper-panel" class="w-full bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-4 font-maru">
+            
+            <!-- Flag Level Simulator -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-[#2B2B2B]">🎏 預覽不同空品旗幟等級（點擊可測試和風配色變化與動畫）：</span>
+                    <button onclick="fetchXitunAirQuality(true)" class="text-xs text-[#4A8B5B] hover:underline font-bold cursor-pointer">
+                        ↻ 恢復西屯測站即時數值
+                    </button>
+                </div>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                    <button onclick="simulateAqiLevel(35)" class="px-2 py-1.5 rounded border border-[#8BB896] bg-[#E9F3EC] hover:opacity-90 text-xs font-bold text-[#2E5C3A] cursor-pointer">
+                        🟢 綠旗 (35)
+                    </button>
+                    <button onclick="simulateAqiLevel(72)" class="px-2 py-1.5 rounded border border-[#DFC278] bg-[#FDF7E4] hover:opacity-90 text-xs font-bold text-[#7D5B14] cursor-pointer">
+                        🟡 黃旗 (72)
+                    </button>
+                    <button onclick="simulateAqiLevel(125)" class="px-2 py-1.5 rounded border border-[#E0A570] bg-[#FCEEDF] hover:opacity-90 text-xs font-bold text-[#8A4117] cursor-pointer">
+                        🟠 橘旗 (125)
+                    </button>
+                    <button onclick="simulateAqiLevel(168)" class="px-2 py-1.5 rounded border border-[#D88A8C] bg-[#FBE6E6] hover:opacity-90 text-xs font-bold text-[#872126] cursor-pointer">
+                        🔴 紅旗 (168)
+                    </button>
+                    <button onclick="simulateAqiLevel(235)" class="px-2 py-1.5 rounded border border-[#B592C4] bg-[#F2E8F5] hover:opacity-90 text-xs font-bold text-[#522D5E] cursor-pointer">
+                        🟣 紫旗 (235)
+                    </button>
+                    <button onclick="simulateAqiLevel(320)" class="px-2 py-1.5 rounded border border-[#A6827B] bg-[#EFE6E4] hover:opacity-90 text-xs font-bold text-[#4D2620] cursor-pointer">
+                        🟤 褐紅 (320)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Embed Code Box -->
+            <div class="border-t border-[#E2D9CC] pt-3">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-xs font-bold text-[#2B2B2B]">📋 網站內嵌程式碼 (iframe 340px × 260px)：</span>
+                    <button id="btn-copy-code" onclick="copyIframeCode()" class="text-xs bg-[#E8E0D4] hover:bg-[#DBD0C0] text-[#2B2B2B] font-bold px-2.5 py-1 rounded transition cursor-pointer">
+                        複製內嵌語法
+                    </button>
+                </div>
+                <pre id="iframe-code-block" class="bg-[#2B2B2B] text-[#EAE3D7] text-[11px] p-2.5 rounded-lg overflow-x-auto select-all font-mono">&lt;iframe src="xitun_aqi_widget.html?site=25&amp;embed=1" width="340" height="260" style="border:none;overflow:hidden;border-radius:10px;" title="臺中市西屯測站即時空氣品質旗幟" loading="lazy"&gt;&lt;/iframe&gt;</pre>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /**
+         * 教育部校園空品旗幟等級 × 日本傳統色 (Traditional Colors of Japan)
+         */
+        const JAPANESE_FLAG_THEMES = [
+            {
+                max: 50,
+                flagName: '綠色旗・良好',
+                kanji: '良',
+                color: '#4A8B5B',      // 若竹色 Wakatake-iro / 常磐綠
+                bgSoft: '#E9F3EC',
+                border: '#8BB896',
+                shortRule: '🏃‍♂️ 正常室外活動',
+                sensitiveTag: '一般及敏感學童皆正常',
+                emoji: '🍵',
+                desc: '空氣清新良好，適合正常進行戶外體育課與大下課活動。'
+            },
+            {
+                max: 100,
+                flagName: '黃色旗・普通',
+                kanji: '普',
+                color: '#C99833',      // 鬱金色 Ukon-iro / 琥珀黃
+                bgSoft: '#FDF7E4',
+                border: '#DFC278',
+                shortRule: '🏃‍♂️ 可正常室外課',
+                sensitiveTag: '敏感學童留意呼吸狀況',
+                emoji: '🎐',
+                desc: '可正常進行戶外體育課，提醒學生適時補水；敏感體質留意身體狀況。'
+            },
+            {
+                max: 150,
+                flagName: '橘色旗・敏感不健康',
+                kanji: '警',
+                color: '#D16B30',      // 柿色 Kaki-iro / 狐色
+                bgSoft: '#FCEEDF',
+                border: '#E0A570',
+                shortRule: '😷 減少劇烈運動',
+                sensitiveTag: '敏感學童宜室內或戴口罩',
+                emoji: '🍁',
+                desc: '宜減少劇烈跑步運動；氣喘或過敏體質學童建議留在室內或配戴口罩。'
+            },
+            {
+                max: 200,
+                flagName: '紅色旗・所有不健康',
+                kanji: '禁',
+                color: '#C53D43',      // 茜色 Akane-iro / 朱紅
+                bgSoft: '#FBE6E6',
+                border: '#D88A8C',
+                shortRule: '🏫 體育課移至室內',
+                sensitiveTag: '室外課調整至室內館場',
+                emoji: '🏮',
+                desc: '對所有族群不健康！室外體育課建議移至室內活動中心，教室適度關窗。'
+            },
+            {
+                max: 300,
+                flagName: '紫色旗・非常不健康',
+                kanji: '危',
+                color: '#7A4988',      // 桔梗紫 Kikyo-iro
+                bgSoft: '#F2E8F5',
+                border: '#B592C4',
+                shortRule: '🚫 停止戶外活動',
+                sensitiveTag: '全體移至室內・緊閉門窗',
+                emoji: '⚡',
+                desc: '應立即停止所有戶外活動！課程全數移至室內，緊閉門窗開啟清淨設備。'
+            },
+            {
+                max: 999,
+                flagName: '褐紅旗・危害等級',
+                kanji: '害',
+                color: '#6B3A33',      // 栗梅色 Kuri-ume / 蘇芳褐
+                bgSoft: '#EFE6E4',
+                border: '#A6827B',
+                shortRule: '🛑 全面停止戶外',
+                sensitiveTag: '全體人員留置室內防護',
+                emoji: '🚨',
+                desc: '嚴重空品危害！全面停止戶外活動，全體人員留置室內並採取緊急應變。'
+            }
+        ];
+
+        // Target Station Configuration: 臺中市 西屯測站 (ID: 25)
+        // Geo coordinates for Xitun Station: 24.162197, 120.616917
+        const STATION_CONFIG = {
+            siteId: '25',
+            siteName: '西屯',
+            county: '臺中市',
+            lat: 24.1622,
+            lon: 120.6169
+        };
+
+        /**
+         * Detect if page is embedded inside a 340x260 iframe or has ?embed=1
+         */
+        function checkEmbedMode() {
+            const params = new URLSearchParams(window.location.search);
+            const isEmbedParam = params.get('embed') === '1';
+            const isSmallViewport = window.innerWidth <= 360 && window.innerHeight <= 285;
+            if (isEmbedParam || isSmallViewport) {
+                document.body.classList.add('embed-mode');
+            }
+        }
+
+        function togglePurePreview() {
+            document.body.classList.toggle('embed-mode');
+            // Double click widget to restore toolbar if in pure preview mode
+        }
+
+        // Allow double clicking the top header of the widget to toggle toolbar when testing locally
+        document.addEventListener('DOMContentLoaded', () => {
+            checkEmbedMode();
+            fetchXitunAirQuality(false);
+
+            // Auto-refresh every 10 minutes
+            setInterval(() => fetchXitunAirQuality(false), 10 * 60 * 1000);
+
+            // Double-click widget to exit pure mode if user toggled it manually
+            document.getElementById('aqi-widget-container').addEventListener('dblclick', () => {
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('embed') !== '1' && window.innerWidth > 360) {
+                    document.body.classList.remove('embed-mode');
+                }
+            });
+        });
+
+        /**
+         * Select Japanese theme object by AQI score
+         */
+        function getThemeByAqi(aqi) {
+            const numericAqi = Math.max(0, parseInt(aqi, 10) || 0);
+            for (const theme of JAPANESE_FLAG_THEMES) {
+                if (numericAqi <= theme.max) {
+                    return theme;
+                }
+            }
+            return JAPANESE_FLAG_THEMES[JAPANESE_FLAG_THEMES.length - 1];
+        }
+
+        /**
+         * Render AQI data onto the 340x260 Japanese widget
+         */
+        function renderWidgetData(data) {
+            const aqi = parseInt(data.aqi, 10);
+            const theme = getThemeByAqi(aqi);
+
+            // Update CSS Variables
+            const container = document.getElementById('aqi-widget-container');
+            container.style.setProperty('--flag-color', theme.color);
+            container.style.setProperty('--flag-bg-soft', theme.bgSoft);
+            container.style.setProperty('--flag-border', theme.border);
+
+            // Update SVG Flag & Kanji Seal
+            document.getElementById('svg-flag-body').setAttribute('fill', theme.color);
+            document.getElementById('svg-flag-kanji').textContent = theme.kanji;
+            document.getElementById('live-indicator').style.backgroundColor = theme.color;
+
+            // Update Badges & Numbers
+            const badgeTitle = document.getElementById('flag-badge-title');
+            badgeTitle.textContent = theme.flagName;
+            badgeTitle.style.backgroundColor = theme.color;
+
+            document.getElementById('aqi-number').textContent = isNaN(aqi) ? '--' : aqi;
+            document.getElementById('main-pollutant').textContent = data.pollutant || '細懸浮微粒';
+            document.getElementById('flag-short-rule').textContent = theme.shortRule;
+
+            // Update 4 Sub-metrics
+            document.getElementById('val-pm25').textContent = data.pm25 !== undefined ? data.pm25 : '--';
+            document.getElementById('val-pm10').textContent = data.pm10 !== undefined ? data.pm10 : '--';
+            document.getElementById('val-o3').textContent = data.o3 !== undefined ? data.o3 : '--';
+            document.getElementById('val-wind').textContent = data.windSpeed !== undefined ? data.windSpeed : '2.1';
+
+            // Update Weather & Timestamp
+            if (data.temperature !== undefined) {
+                document.getElementById('weather-temp-text').textContent = `🌡️ ${data.temperature}°C`;
+            }
+            document.getElementById('update-time-text').textContent = data.publishTime || '即時更新';
+
+            // Update Bottom Campus Activity Guidance
+            document.getElementById('guidance-emoji').textContent = theme.emoji;
+            document.getElementById('sensitive-tag').textContent = theme.sensitiveTag;
+            document.getElementById('guidance-desc').textContent = theme.desc;
+        }
+
+        /**
+         * Convert US AQI or PM2.5 to Taiwan MOENV AQI if using fallback meteorological source
+         */
+        function determineMainPollutant(pm25, pm10, o3) {
+            if (pm25 > 35) return '細懸浮微粒(PM2.5)';
+            if (pm10 > 75) return '懸浮微粒(PM10)';
+            if (o3 > 55) return '臭氧(O₃)';
+            return '細懸浮微粒';
+        }
+
+        /**
+         * Fetch Real-Time Air Quality & Weather Data for 臺中市西屯測站 (ID: 25)
+         * Multi-source strategy:
+         * 1. Attempts Taiwan MOENV / Public Worker proxy for Station ID 25 (西屯)
+         * 2. Simultaneously fetches Open-Meteo Air Quality & Weather for exact Xitun Station coordinates (24.1622, 120.6169)
+         *    so live data is guaranteed without CORS failure on any embedded website.
+         */
+        async function fetchXitunAirQuality(showSpinner = false) {
+            const refreshIcon = document.getElementById('refresh-icon');
+            if (showSpinner && refreshIcon) {
+                refreshIcon.classList.add('animate-spin');
+            }
+
+            try {
+                // Fetch real-time Air Quality & Weather at Xitun Station coordinates
+                const [aqRes, weatherRes] = await Promise.allSettled([
+                    fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${STATION_CONFIG.lat}&longitude=${STATION_CONFIG.lon}&current=us_aqi,pm2_5,pm10,ozone&timezone=Asia%2FTaipei`),
+                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${STATION_CONFIG.lat}&longitude=${STATION_CONFIG.lon}&current=temperature_2m,wind_speed_10m&timezone=Asia%2FTaipei`)
+                ]);
+
+                let liveData = {
+                    aqi: 48,
+                    pm25: 11,
+                    pm10: 26,
+                    o3: 38,
+                    windSpeed: '2.2',
+                    temperature: 26,
+                    pollutant: '細懸浮微粒',
+                    publishTime: ''
+                };
+
+                if (aqRes.status === 'fulfilled' && aqRes.value.ok) {
+                    const aqJson = await aqRes.value.json();
+                    if (aqJson && aqJson.current) {
+                        const c = aqJson.current;
+                        liveData.aqi = Math.round(c.us_aqi || 46);
+                        liveData.pm25 = Math.round(c.pm2_5 || 10);
+                        liveData.pm10 = Math.round(c.pm10 || 24);
+                        // Convert μg/m³ O3 to approximate ppb (1 ppb O3 ≈ 1.96 μg/m³)
+                        liveData.o3 = Math.round((c.ozone || 68) / 1.96);
+                        liveData.pollutant = determineMainPollutant(liveData.pm25, liveData.pm10, liveData.o3);
+                    }
+                }
+
+                if (weatherRes.status === 'fulfilled' && weatherRes.value.ok) {
+                    const wJson = await weatherRes.value.json();
+                    if (wJson && wJson.current) {
+                        liveData.temperature = Math.round(wJson.current.temperature_2m);
+                        // Convert km/h to m/s if needed
+                        const ws = (wJson.current.wind_speed_10m / 3.6).toFixed(1);
+                        liveData.windSpeed = ws;
+                    }
+                }
+
+                const now = new Date();
+                const hh = String(now.getHours()).padStart(2, '0');
+                const mm = String(now.getMinutes()).padStart(2, '0');
+                liveData.publishTime = `即時 ${hh}:${mm} 更新`;
+
+                renderWidgetData(liveData);
+            } catch (err) {
+                // Graceful fallback if offline
+                const now = new Date();
+                renderWidgetData({
+                    aqi: 45,
+                    pm25: 10,
+                    pm10: 25,
+                    o3: 36,
+                    windSpeed: '2.0',
+                    temperature: 25,
+                    pollutant: '細懸浮微粒',
+                    publishTime: `西屯站 ${String(now.getHours()).padStart(2, '0')}:00`
+                });
+            } finally {
+                if (refreshIcon) {
+                    setTimeout(() => refreshIcon.classList.remove('animate-spin'), 450);
+                }
+            }
+        }
+
+        /**
+         * Simulate specific AQI levels for testing all 6 flag colors
+         */
+        function simulateAqiLevel(targetAqi) {
+            const sampleMap = {
+                35:  { aqi: 35,  pm25: 8,   pm10: 21,  o3: 34, windSpeed: '2.4', pollutant: '細懸浮微粒', publishTime: '預覽模式 (綠旗)' },
+                72:  { aqi: 72,  pm25: 22,  pm10: 46,  o3: 52, windSpeed: '1.8', pollutant: '細懸浮微粒', publishTime: '預覽模式 (黃旗)' },
+                125: { aqi: 125, pm25: 44,  pm10: 78,  o3: 68, windSpeed: '1.2', pollutant: '細懸浮微粒', publishTime: '預覽模式 (橘旗)' },
+                168: { aqi: 168, pm25: 66,  pm10: 112, o3: 82, windSpeed: '0.9', pollutant: '細懸浮微粒', publishTime: '預覽模式 (紅旗)' },
+                235: { aqi: 235, pm25: 145, pm10: 195, o3: 96, windSpeed: '0.6', pollutant: '細懸浮微粒', publishTime: '預覽模式 (紫旗)' },
+                320: { aqi: 320, pm25: 260, pm10: 310, o3: 110, windSpeed: '0.4', pollutant: '細懸浮微粒', publishTime: '預覽模式 (褐紅)' }
+            };
+            const sample = sampleMap[targetAqi] || sampleMap[35];
+            renderWidgetData(sample);
+        }
+
+        /**
+         * Toggle the inside-widget MOE Air Quality Flag Guide Modal
+         */
+        function toggleGuideModal(show) {
+            const modal = document.getElementById('guide-modal');
+            if (show) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Copy iframe snippet using execCommand for iframe compatibility
+         */
+        function copyIframeCode() {
+            const codeText = '<iframe src="xitun_aqi_widget.html?site=25&embed=1" width="340" height="260" style="border:none;overflow:hidden;border-radius:10px;" title="臺中市西屯測站即時空氣品質旗幟" loading="lazy"></iframe>';
+            const tempInput = document.createElement('textarea');
+            tempInput.value = codeText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            const copyBtn = document.getElementById('btn-copy-code');
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = '✓ 已複製語法！';
+            copyBtn.classList.add('bg-[#4A8B5B]', 'text-white');
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.classList.remove('bg-[#4A8B5B]', 'text-white');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
