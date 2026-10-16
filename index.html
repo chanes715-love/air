@@ -493,7 +493,7 @@
                 for (const url of urlsToTry) {
                     try {
                         const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 3800);
+                        const timeoutId = setTimeout(() => controller.abort(), 8000);
                         const res = await fetch(url, { signal: controller.signal });
                         clearTimeout(timeoutId);
 
@@ -512,19 +512,8 @@
                                 return {
                                     aqi: parseInt(xitun.aqi, 10),
                                     pollutant: xitun.pollutant || '細懸浮微粒',
-                                    pm25_avg: xitun['pm2.5_avg'] || xitun['pm2.5'] || '19.8',
-                                    pm25: xitun['pm2.5'] || xitun['pm2.5_avg'] || '21',
-                                    pm10_avg: xitun.pm10_avg || xitun.pm10 || '38',
-                                    pm10: xitun.pm10 || xitun.pm10_avg || '41',
-                                    o3_8hr: xitun.o3_8hr || xitun.o3 || '46',
-                                    o3: xitun.o3 || xitun.o3_8hr || '39',
-                                    co_8hr: xitun.co_8hr || xitun.co || '0.32',
-                                    so2: xitun.so2 || '1.5',
-                                    no2: xitun.no2 || '12',
-                                    windSpeed: xitun.wind_speed || '1.8',
                                     publishTime: shortTime,
-                                    fullPublishTime: `${rawTime} (環境部西屯站)`,
-                                    sourceLabel: `環境部・${xitun.status || '普通'}`
+                                    sourceLabel: '環境部開放資料 API'
                                 };
                             }
                         }
@@ -537,9 +526,46 @@
         }
 
         /**
+         * 精準抓取目標網頁 WebWidget.aspx HTML 的備援方案
+         */
+        async function fetchFromWebWidgetHtml() {
+            try {
+                // 直接向指定的官方 WebWidget.aspx 發送請求解析
+                const targetUrl = 'https://airtw.moenv.gov.tw/AirQuality_APIs/WebWidget.aspx?site=25';
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+                const res = await fetch(proxyUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                if (!res.ok) return null;
+                const json = await res.json();
+                const html = json.contents;
+                
+                // 尋找 HTML 中的 AQI 數值區塊（環境部 WebWidget 常將數字放在 val 類別中）
+                const aqiMatch = html.match(/<div[^>]*class="val"[^>]*>(\d{1,3})<\/div>/i) || html.match(/AQI[\s\S]*?(\d{1,3})/i);
+                
+                if (aqiMatch && aqiMatch[1]) {
+                    const timeMatch = html.match(/(\d{4}\/\d{2}\/\d{2}\s\d{2}:\d{2})/);
+                    const shortTime = timeMatch && timeMatch[1] ? `${timeMatch[1].split(' ')[1]} 發布` : '即時同步';
+
+                    return {
+                        aqi: parseInt(aqiMatch[1], 10),
+                        pollutant: '細懸浮微粒', 
+                        publishTime: shortTime,
+                        sourceLabel: 'WebWidget 即時同步'
+                    };
+                }
+            } catch (e) {
+                console.warn("WebWidget HTML 爬取失敗:", e);
+            }
+            return null;
+        }
+
+        /**
          * Fetch Real-Time Air Quality for 臺中市西屯測站 (ID: 25)
-         * Priority 1: Official Taiwan MOENV (airtw.moenv.gov.tw / aqx_p_432) API
-         * Priority 2: Synchronized Xitun Station Current Observation
+         * 確保與官方網頁數據絕對同步
          */
         async function fetchXitunAirQuality(showSpinner = false) {
             const refreshIcon = document.getElementById('refresh-icon');
@@ -548,27 +574,27 @@
             }
 
             try {
-                // 1. First attempt official MOENV aqx_p_432 API for SiteID 25 (西屯)
+                // 狀態顯示更新中...
+                document.getElementById('update-time-text').textContent = '與環境部同步中...';
+
+                // 1. 優先嘗試官方開放資料 API (CORS 安全通道)
                 const moenvData = await fetchFromMoenvOfficial();
                 if (moenvData) {
                     renderWidgetData(moenvData);
                     return;
                 }
 
-                // 2. Synchronized Current Observation for 臺中市西屯測站 (ID: 25) -> 以官方 WebWidget.aspx 最新數值為準
-                const now = new Date();
-                const hh = String(now.getHours()).padStart(2, '0');
-                const dateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${hh}:00`;
+                // 2. 若 API 失敗，直接爬取使用者指定的 WebWidget.aspx 網頁
+                const widgetData = await fetchFromWebWidgetHtml();
+                if (widgetData) {
+                    renderWidgetData(widgetData);
+                    return;
+                }
 
-                const currentXitunData = {
-                    aqi: 65,
-                    pollutant: '細懸浮微粒',
-                    publishTime: `${hh}:00 發布`,
-                    fullPublishTime: `${dateStr} (環境部西屯測站 ID:25)`,
-                    sourceLabel: '環境部・普通'
-                };
+                // 3. 雙重失效時，不再給予假數值，明確提示連線失敗 (顯示 "--")
+                document.getElementById('aqi-number').textContent = '--';
+                document.getElementById('update-time-text').textContent = '連線超時，請重試';
 
-                renderWidgetData(currentXitunData);
             } finally {
                 if (refreshIcon) {
                     setTimeout(() => refreshIcon.classList.remove('animate-spin'), 450);
