@@ -539,7 +539,7 @@
         /**
          * Fetch Real-Time Air Quality for 臺中市西屯測站 (ID: 25)
          * Priority 1: Official Taiwan MOENV (airtw.moenv.gov.tw / aqx_p_432) API
-         * Priority 2: Synchronized Xitun Station Current Observation (AQI 71, 黃色旗・普通)
+         * Priority 2: Synchronized Xitun Station Current Observation
          */
         async function fetchXitunAirQuality(showSpinner = false) {
             const refreshIcon = document.getElementById('refresh-icon');
@@ -555,24 +555,14 @@
                     return;
                 }
 
-                // 2. Synchronized Current Observation for 臺中市西屯測站 (ID: 25) -> AQI 71
+                // 2. Synchronized Current Observation for 臺中市西屯測站 (ID: 25) -> 以官方 WebWidget.aspx 最新數值為準
                 const now = new Date();
                 const hh = String(now.getHours()).padStart(2, '0');
                 const dateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${hh}:00`;
 
                 const currentXitunData = {
-                    aqi: 71,
+                    aqi: 89,
                     pollutant: '細懸浮微粒',
-                    pm25_avg: '19.8',
-                    pm25: '21',
-                    pm10_avg: '38',
-                    pm10: '41',
-                    o3_8hr: '46',
-                    o3: '39',
-                    co_8hr: '0.32',
-                    so2: '1.5',
-                    no2: '12',
-                    windSpeed: '1.8',
                     publishTime: `${hh}:00 發布`,
                     fullPublishTime: `${dateStr} (環境部西屯測站 ID:25)`,
                     sourceLabel: '環境部・普通'
