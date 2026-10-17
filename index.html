@@ -3,632 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>臺中市西屯測站 (ID: 25) 即時空氣品質旗幟 - 日式和風小工具</title>
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Google Fonts: Noto Serif TC & Zen Maru Gothic for Japanese aesthetic -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
-
+    <title>臺中市西屯測站 - 即時空氣品質</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --washi-bg: #FFFFFF;
-            --washi-border: #E2E8F0;
-            --sumi-ink: #2B2B2B;
-            --sumi-light: #6E6A63;
-            --flag-color: #4A8B5B;
-            --flag-bg-soft: #E9F3EC;
-            --flag-border: #8BB896;
-        }
-
         body {
-            font-family: 'Noto Serif TC', serif;
             margin: 0;
             padding: 0;
             background-color: #FFFFFF;
-            color: var(--sumi-ink);
-            overflow-x: hidden;
+            font-family: 'Noto Serif TC', serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
 
-        .font-maru {
-            font-family: 'Zen Maru Gothic', sans-serif;
-        }
-
-        /* Exact 340x260 Widget Container */
-        #aqi-widget-container {
+        /* 固定 340x260 日式白底外框 */
+        .widget-box {
             width: 340px;
             height: 260px;
-            background-color: #FFFFFF;
-            /* Subtle Japanese Seigaiha pattern on pure white background */
-            background-image: 
-                radial-gradient(circle at 100% 150%, rgba(226, 232, 240, 0.35) 24%, transparent 25%),
-                radial-gradient(circle at 0% 150%, rgba(226, 232, 240, 0.35) 24%, transparent 25%);
-            background-size: 28px 14px, 28px 14px;
-            position: relative;
-            overflow: hidden;
-            box-sizing: border-box;
-            border: 2px solid #3F3B36;
+            background: #FFFFFF;
+            border: 2px solid #2B2B2B;
             border-radius: 10px;
-            box-shadow: 0 6px 18px rgba(43, 43, 43, 0.08);
-            user-select: none;
-            transition: all 0.35s ease;
+            padding: 10px 12px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
         }
 
-        /* Inner Traditional Frame Line */
-        .washi-inner-frame {
-            position: absolute;
-            inset: 4px;
-            border: 1px solid var(--washi-border);
-            border-radius: 6px;
-            pointer-events: none;
-            z-index: 20;
+        /* 頂部標題列 */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #E5E7EB;
+            padding-bottom: 6px;
         }
 
-        /* Corner Decorative Knots */
-        .washi-inner-frame::before,
-        .washi-inner-frame::after {
-            content: '';
-            position: absolute;
-            width: 6px;
-            height: 6px;
-            border: 1px solid #8C8275;
-            background: var(--washi-bg);
-        }
-        .washi-inner-frame::before { top: -3px; left: -3px; }
-        .washi-inner-frame::after { bottom: -3px; right: -3px; }
-
-        /* Waving Flag Animation */
-        @keyframes flagWave {
-            0%, 100% {
-                transform: skewY(0deg) scaleX(1);
-                filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.12));
-            }
-            25% {
-                transform: skewY(-2.5deg) scaleX(0.97);
-                filter: drop-shadow(3px 4px 4px rgba(0,0,0,0.16));
-            }
-            50% {
-                transform: skewY(1.5deg) scaleX(1.01);
-                filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.10));
-            }
-            75% {
-                transform: skewY(-1.5deg) scaleX(0.98);
-                filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.14));
-            }
+        .title-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .flag-cloth {
-            transform-origin: left center;
-            animation: flagWave 3.2s ease-in-out infinite;
-            transition: fill 0.4s ease;
-        }
-
-        /* Floating Sakura / Wind Particle Animation */
-        @keyframes windDrift {
-            0% { transform: translateX(-10px) translateY(0px) rotate(0deg); opacity: 0; }
-            30% { opacity: 0.45; }
-            70% { opacity: 0.45; }
-            100% { transform: translateX(350px) translateY(-12px) rotate(180deg); opacity: 0; }
-        }
-
-        .wind-petal {
-            position: absolute;
-            pointer-events: none;
-            animation: windDrift 9s linear infinite;
-        }
-
-        /* Traditional Japanese Stamp (Hanko) */
-        .hanko-stamp {
+        /* 日式朱印 */
+        .stamp {
             border: 1.5px solid #C53D43;
             color: #C53D43;
-            font-family: 'Noto Serif TC', serif;
+            font-size: 11px;
             font-weight: 900;
-            letter-spacing: 0.05em;
-            line-height: 1.05;
-            background: rgba(197, 61, 67, 0.06);
-            box-shadow: inset 0 0 0 0.5px rgba(197, 61, 67, 0.3);
+            padding: 1px 4px;
+            border-radius: 3px;
+            background: rgba(197, 61, 67, 0.05);
         }
 
-        /* Pulse dot for live indicator */
-        @keyframes softPulse {
-            0%, 100% { transform: scale(1); opacity: 0.9; }
-            50% { transform: scale(1.35); opacity: 0.4; }
+        .title {
+            font-size: 14px;
+            font-weight: 900;
+            color: #2B2B2B;
+            letter-spacing: 0.5px;
         }
-        .live-dot {
-            animation: softPulse 2.2s infinite ease-in-out;
+
+        .reload-btn {
+            font-size: 11px;
+            color: #555;
+            background: #F8FAFC;
+            border: 1px solid #CBD5E1;
+            border-radius: 4px;
+            padding: 2px 6px;
+            cursor: pointer;
+        }
+        .reload-btn:hover {
+            background: #E2E8F0;
+        }
+
+        /* 中間直接嵌入環境部官方西屯即時小工具 (100% 同步、零報錯) */
+        .iframe-wrap {
+            width: 100%;
+            height: 145px;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #FAFAFA;
+        }
+
+        .iframe-wrap iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* 底部簡單空品說明列 */
+        .guide-bar {
+            background: #2B2B2B;
+            color: #FFFFFF;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .guide-badges {
+            display: flex;
+            justify-content: space-between;
+            font-family: sans-serif;
+            font-size: 10px;
+            margin-top: 3px;
+        }
+
+        .dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            margin-right: 2px;
         }
     </style>
 </head>
-<body class="bg-white flex items-center justify-center min-h-screen p-0 m-0">
+<body>
 
-    <!-- ================================================================= -->
-    <!-- CORE 340px × 260px WIDGET START                                   -->
-    <!-- ================================================================= -->
-    <div id="aqi-widget-container" role="region" aria-label="臺中市西屯測站即時空氣品質旗幟">
-        <!-- Decorative Inner Frame -->
-        <div class="washi-inner-frame"></div>
-
-            <!-- Background Subtle Japanese Mt. / Cloud / Wind Motif SVG -->
-            <svg class="absolute right-0 bottom-6 w-36 h-24 opacity-[0.06] pointer-events-none" viewBox="0 0 200 120" fill="none">
-                <path d="M15 85 H85 M35 70 H115 M110 45 C125 45, 130 35, 145 35 C160 35, 165 45, 180 45 H105 Z" stroke="#2B2B2B" stroke-width="4" stroke-linecap="round"/>
-                <circle cx="155" cy="35" r="22" fill="#C53D43"/>
-            </svg>
-
-            <!-- Subtle drifting wind petal -->
-            <svg class="wind-petal top-12 left-0 w-3 h-3 opacity-30" viewBox="0 0 20 20">
-                <path d="M10 2 C14 6, 18 10, 10 18 C2 10, 6 6, 10 2 Z" fill="#D49B94"/>
-            </svg>
-
-            <!-- WIDGET CONTENT LAYOUT (340x260 padded inside) -->
-            <div class="relative z-10 w-full h-full p-[12px] flex flex-col justify-between">
-                
-                <!-- 1. TOP HEADER BAR (Height ~34px) -->
-                <div class="flex items-center justify-between border-b border-gray-200 pb-1.5">
-                    <div class="flex items-center gap-1.5">
-                        <!-- Japanese Torii / Station Seal -->
-                        <div class="hanko-stamp text-[10px] px-1 py-0.5 rounded-[3px] flex flex-col items-center leading-none">
-                            <span>西屯</span>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-1">
-                                <span class="text-[13px] font-bold tracking-wider text-[#2B2B2B]">臺中市・西屯測站</span>
-                                <span class="text-[10px] font-maru text-[#6E6A63] bg-gray-100 px-1.5 py-0.2 rounded">ID:25</span>
-                            </div>
-                            <div class="flex items-center gap-1.5 text-[10px] text-[#7A7369] font-maru leading-tight mt-0.5">
-                                <span class="inline-flex items-center gap-1">
-                                    <span id="live-indicator" class="w-1.5 h-1.5 rounded-full bg-[#C99833] live-dot"></span>
-                                    <span id="update-time-text">環境部即時連線...</span>
-                                </span>
-                                <span>｜</span>
-                                <span id="weather-temp-text">環境部監測網</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right side buttons: Guide Modal & Refresh -->
-                    <div class="flex items-center gap-1">
-                        <a href="https://airtw.moenv.gov.tw/?utm_source=airtw&utm_medium=gitech&utm_campaign=widget" target="_blank" rel="noopener noreferrer" title="開啟環境部空氣品質監測網" class="w-6 h-6 rounded-md border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-[#4A453F] transition">
-                            <span class="text-[10px] font-bold">官</span>
-                        </a>
-                        <button onclick="toggleGuideModal(true)" title="教育部空品旗幟說明及環境部細項" class="w-6 h-6 rounded-md border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-[#4A453F] transition cursor-pointer">
-                            <span class="text-[11px] font-bold">？</span>
-                        </button>
-                        <button id="btn-refresh" onclick="fetchXitunAirQuality(true)" title="重新整理環境部即時數據" class="w-6 h-6 rounded-md border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-[#4A453F] transition cursor-pointer">
-                            <svg id="refresh-icon" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                                <path d="M3 3v5h5"/>
-                                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-                                <path d="M16 21h5v-5"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 2. MIDDLE HERO SECTION: Animated Flag + AQI Value + Status (Height ~90px) -->
-                <div class="flex-1 my-2 flex items-center justify-between rounded-lg px-2 py-2 border transition-colors duration-300"
-                     id="hero-card"
-                     style="background-color: var(--flag-bg-soft); border-color: var(--flag-border);">
-                    
-                    <!-- Left: Animated Japanese School Air Quality Flag SVG -->
-                    <div class="flex items-center gap-1.5 shrink-0">
-                        <div class="relative w-[60px] h-[64px] flex items-center justify-center">
-                            <svg class="w-full h-full overflow-visible" viewBox="0 0 70 76">
-                                <!-- Wooden base & pole -->
-                                <ellipse cx="14" cy="71" rx="9" ry="3" fill="#8C7A6B" opacity="0.45"/>
-                                <line x1="14" y1="8" x2="14" y2="71" stroke="#5C4938" stroke-width="3.2" stroke-linecap="round"/>
-                                <!-- Golden finial ball (Giboshi) -->
-                                <circle cx="14" cy="7" r="3.5" fill="#C99833" stroke="#5C4938" stroke-width="1"/>
-                                <!-- Flag tie cords -->
-                                <line x1="14" y1="13" x2="18" y2="13" stroke="#FAF6F0" stroke-width="1.5"/>
-                                <line x1="14" y1="45" x2="18" y2="45" stroke="#FAF6F0" stroke-width="1.5"/>
-                                
-                                <!-- Animated Waving Triangular School Flag -->
-                                <g class="flag-cloth">
-                                    <path id="svg-flag-body"
-                                          d="M16 11 C32 9, 48 19, 66 28 C48 36, 32 46, 16 47 Z"
-                                          fill="#C99833"
-                                          stroke="#2B2B2B"
-                                          stroke-width="1.2"
-                                          stroke-linejoin="round"/>
-                                    <!-- Inner Japanese Mon / Emblem on Flag -->
-                                    <circle cx="31" cy="28.5" r="7.5" fill="rgba(255, 255, 255, 0.92)"/>
-                                    <text id="svg-flag-kanji" x="31" y="31.5" text-anchor="middle" font-size="9" font-weight="900" fill="#2B2B2B" font-family="Noto Serif TC, serif">普</text>
-                                </g>
-                            </svg>
-                        </div>
-
-                        <!-- Center: Flag Title & AQI Number -->
-                        <div class="shrink-0">
-                            <div class="flex items-center gap-1">
-                                <span id="flag-badge-title" class="text-[12px] font-bold px-1.5 py-0.5 rounded text-white tracking-wide transition-colors whitespace-nowrap" style="background-color: var(--flag-color);">
-                                    黃色旗・普通
-                                </span>
-                            </div>
-                            <div class="flex items-baseline gap-1 mt-1.5">
-                                <span class="text-[12px] font-maru text-[#5A544C] font-bold whitespace-nowrap">AQI 指標</span>
-                                <span id="aqi-number" class="text-[40px] font-black leading-none tracking-tight text-[#2B2B2B]">71</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right: Vertical Japanese Seal / Primary Pollutant -->
-                    <div class="flex flex-col items-end justify-center h-full pl-2 border-l border-black/10 shrink-0">
-                        <div class="text-right">
-                            <span class="text-[11px] font-maru text-[#6E6A63] block whitespace-nowrap">指標污染物</span>
-                            <span id="main-pollutant" class="text-[13px] font-bold text-[#2B2B2B] font-maru whitespace-nowrap">細懸浮微粒</span>
-                        </div>
-                        <div class="mt-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded border border-black/10 text-right whitespace-nowrap">
-                            <span id="flag-short-rule" class="text-[11px] font-bold text-[#2B2B2B] whitespace-nowrap">🏃‍♂️ 可正常室外課</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 4. BOTTOM CAMPUS ACTIVITY GUIDANCE BANNER -->
-                <div class="bg-[#2B2B2B] text-[#FAF6F0] rounded-md px-2.5 py-1.5 flex items-center justify-between gap-2">
-                    <div class="flex items-start gap-1.5 overflow-hidden">
-                        <span id="guidance-emoji" class="text-sm leading-none mt-0.5 shrink-0">🎐</span>
-                        <div class="leading-tight">
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-[10px] font-bold text-[#E2C275] tracking-wider">校園戶外活動指引</span>
-                                <span id="sensitive-tag" class="text-[9px] font-maru bg-white/15 px-1 rounded text-[#E8E2D9]">敏感學童留意呼吸狀況</span>
-                            </div>
-                            <p id="guidance-desc" class="text-[10px] font-maru text-[#EAE3D7] line-clamp-1 mt-0.5">
-                                可正常進行戶外體育課，提醒學生適時補水；敏感體質留意身體狀況。
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
+    <div class="widget-box">
+        <!-- 1. 標題 -->
+        <div class="header">
+            <div class="title-group">
+                <span class="stamp">西屯</span>
+                <span class="title">臺中市西屯測站 (ID:25)</span>
             </div>
+            <button class="reload-btn" onclick="reloadAqi()">↻ 更新</button>
+        </div>
 
-            <!-- OVERLAY MODAL: 教育部校園空氣品質旗幟防護指引 (Fits inside 340x260) -->
-            <div id="guide-modal" class="hidden absolute inset-0 z-30 bg-white/95 backdrop-blur-sm p-3 flex flex-col justify-between">
-                <div class="flex items-center justify-between border-b border-gray-200 pb-1.5">
-                    <div class="flex items-center gap-1.5">
-                        <span class="hanko-stamp text-[10px] px-1 py-0.2 rounded">指引</span>
-                        <span class="text-xs font-bold text-[#2B2B2B]">教育部校園空品旗幟標準</span>
-                    </div>
-                    <button onclick="toggleGuideModal(false)" class="text-xs font-bold px-2 py-0.5 rounded bg-[#2B2B2B] text-white cursor-pointer">
-                        返回
-                    </button>
-                </div>
-                <div class="grid grid-cols-1 gap-1 my-1 overflow-y-auto font-maru text-[10px] pr-1">
-                    <div class="flex items-center gap-1.5 bg-[#E9F3EC] px-2 py-1 rounded border border-[#8BB896]">
-                        <span class="w-2.5 h-2.5 rounded-full bg-[#4A8B5B] shrink-0"></span>
-                        <strong class="w-24 shrink-0">綠旗 (0-50)</strong>
-                        <span class="text-[#4A453F] truncate">良好：正常進行戶外體育課與活動</span>
-                    </div>
-                    <div class="flex items-center gap-1.5 bg-[#FDF7E4] px-2 py-1 rounded border border-[#DFC278]">
-                        <span class="w-2.5 h-2.5 rounded-full bg-[#C99833] shrink-0"></span>
-                        <strong class="w-24 shrink-0">黃旗 (51-100)</strong>
-                        <span class="text-[#4A453F] truncate">普通：正常戶外課，敏感學童留意呼吸</span>
-                    </div>
-                    <div class="flex items-center gap-1.5 bg-[#FCEEDF] px-2 py-1 rounded border border-[#E0A570]">
-                        <span class="w-2.5 h-2.5 rounded-full bg-[#D16B30] shrink-0"></span>
-                        <strong class="w-24 shrink-0">橘旗 (101-150)</strong>
-                        <span class="text-[#4A453F] truncate">敏感不健康：減少劇烈運動，敏感戴口罩</span>
-                    </div>
-                    <div class="flex items-center gap-1.5 bg-[#FBE6E6] px-2 py-1 rounded border border-[#D88A8C]">
-                        <span class="w-2.5 h-2.5 rounded-full bg-[#C53D43] shrink-0"></span>
-                        <strong class="w-24 shrink-0">紅旗 (151-200)</strong>
-                        <span class="text-[#4A453F] truncate">不健康：體育課移至室內，適度關門窗</span>
-                    </div>
-                    <div class="flex items-center gap-1.5 bg-[#F2E8F5] px-2 py-1 rounded border border-[#B592C4]">
-                        <span class="w-2.5 h-2.5 rounded-full bg-[#7A4988] shrink-0"></span>
-                        <strong class="w-24 shrink-0">紫旗 (201-300)</strong>
-                        <span class="text-[#4A453F] truncate">非常不健康：立即停止所有戶外活動</span>
-                    </div>
-                    <div class="flex items-center gap-1.5 bg-[#EFE6E4] px-2 py-1 rounded border border-[#A6827B]">
-                        <span class="w-2.5 h-2.5 rounded-full bg-[#6B3A33] shrink-0"></span>
-                        <strong class="w-24 shrink-0">褐紅 (301+)</strong>
-                        <span class="text-[#4A453F] truncate">危害：全面停止戶外活動，留置室內</span>
-                    </div>
-                </div>
-                <div class="text-[9px] text-[#7A7369] font-maru text-right">
-                    資料來源：環境部空氣品質監測網 (airtw.moenv.gov.tw・西屯站 ID:25)
-                </div>
+        <!-- 2. 環境部官方即時 AQI 顯示區 -->
+        <div class="iframe-wrap">
+            <iframe id="moenv-frame" src="https://airtw.moenv.gov.tw/AirQuality_APIs/WebWidget.aspx?site=25" title="西屯區即時空氣品質"></iframe>
+        </div>
+
+        <!-- 3. 簡易校園空品旗幟說明 -->
+        <div class="guide-bar">
+            <div style="color: #E2C275; font-weight: bold; font-size: 10px;">
+                🚩 空氣品質指標 (AQI) 活動說明：
+            </div>
+            <div class="guide-badges">
+                <span><i class="dot" style="background:#4A8B5B;"></i>0-50 正常活動</span>
+                <span><i class="dot" style="background:#C99833;"></i>51-100 正常室外課</span>
+                <span><i class="dot" style="background:#D16B30;"></i>101+ 減少劇烈運動</span>
             </div>
         </div>
-        <!-- ================================================================= -->
-        <!-- CORE 340px × 260px WIDGET END                                     -->
-        <!-- ================================================================= -->
+    </div>
 
     <script>
-        /**
-         * 教育部校園空品旗幟等級 × 日本傳統色 (Traditional Colors of Japan)
-         */
-        const JAPANESE_FLAG_THEMES = [
-            {
-                max: 50,
-                flagName: '綠色旗・良好',
-                kanji: '良',
-                color: '#4A8B5B',      // 若竹色 Wakatake-iro / 常磐綠
-                bgSoft: '#E9F3EC',
-                border: '#8BB896',
-                shortRule: '🏃‍♂️ 正常室外活動',
-                sensitiveTag: '一般及敏感學童皆正常',
-                emoji: '🍵',
-                desc: '空氣清新良好，適合正常進行戶外體育課與大下課活動。'
-            },
-            {
-                max: 100,
-                flagName: '黃色旗・普通',
-                kanji: '普',
-                color: '#C99833',      // 鬱金色 Ukon-iro / 琥珀黃
-                bgSoft: '#FDF7E4',
-                border: '#DFC278',
-                shortRule: '🏃‍♂️ 可正常室外課',
-                sensitiveTag: '敏感學童留意呼吸狀況',
-                emoji: '🎐',
-                desc: '可正常進行戶外體育課，提醒學生適時補水；敏感體質留意身體狀況。'
-            },
-            {
-                max: 150,
-                flagName: '橘色旗・敏感不健康',
-                kanji: '警',
-                color: '#D16B30',      // 柿色 Kaki-iro / 狐色
-                bgSoft: '#FCEEDF',
-                border: '#E0A570',
-                shortRule: '😷 減少劇烈運動',
-                sensitiveTag: '敏感學童宜室內或戴口罩',
-                emoji: '🍁',
-                desc: '宜減少劇烈跑步運動；氣喘或過敏體質學童建議留在室內或配戴口罩。'
-            },
-            {
-                max: 200,
-                flagName: '紅色旗・所有不健康',
-                kanji: '禁',
-                color: '#C53D43',      // 茜色 Akane-iro / 朱紅
-                bgSoft: '#FBE6E6',
-                border: '#D88A8C',
-                shortRule: '🏫 改為室內活動',
-                sensitiveTag: '全體師生減少戶外暴露',
-                emoji: '⛩️',
-                desc: '應將戶外體育課及集會活動改至室內舉行，並適度關閉教室門窗。'
-            },
-            {
-                max: 300,
-                flagName: '紫色旗・非常不健康',
-                kanji: '危',
-                color: '#7A4988',      // 桔梗紫 Kikyo-iro / 京紫
-                bgSoft: '#F2E8F5',
-                border: '#B592C4',
-                shortRule: '🚫 停止戶外活動',
-                sensitiveTag: '全校立即停止室外課',
-                emoji: '⚡',
-                desc: '立即停止所有戶外活動，全面改於室內上課，外出務必配戴防護口罩。'
-            },
-            {
-                max: 999,
-                flagName: '褐紅旗・空品危害',
-                kanji: '害',
-                color: '#6B3A33',      // 栗梅色 Kuri-ume / 蘇芳褐
-                bgSoft: '#EFE6E4',
-                border: '#A6827B',
-                shortRule: '🛑 全面留置室內',
-                sensitiveTag: '空品危害等級・緊閉門窗',
-                emoji: '🚨',
-                desc: '空氣品質達危害等級！全面停止戶外活動並緊閉門窗，開啟空氣清淨設備。'
-            }
-        ];
-
-        function getThemeByAqi(aqiValue) {
-            const num = Number(aqiValue) || 0;
-            for (const theme of JAPANESE_FLAG_THEMES) {
-                if (num <= theme.max) return theme;
-            }
-            return JAPANESE_FLAG_THEMES[JAPANESE_FLAG_THEMES.length - 1];
+        // 手動點擊更新按鈕時，重新載入環境部即時畫面
+        function reloadAqi() {
+            const frame = document.getElementById('moenv-frame');
+            frame.src = 'https://airtw.moenv.gov.tw/AirQuality_APIs/WebWidget.aspx?site=25';
         }
 
-        // Target Station Configuration: 臺中市 西屯測站 (SiteID: 25) on airtw.moenv.gov.tw
-        const STATION_CONFIG = {
-            siteId: '25',
-            siteName: '西屯',
-            county: '臺中市',
-            lat: 24.1622,
-            lon: 120.6169,
-            // Public Open Data API keys for Taiwan MOENV dataset aqx_p_432
-            moenvKeys: [
-                'e8dd42e6-9b8b-43f8-991e-b3dee723a52d',
-                '9b651a1b-0732-418e-b4e9-e784417cadef'
-            ]
-        };
-
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchXitunAirQuality(false);
-            
-            // 設定每 10 分鐘 (10 * 60 * 1000 毫秒) 自動執行一次同步
-            setInterval(() => {
-                console.log("執行 10 分鐘例行同步...");
-                fetchXitunAirQuality(false);
-            }, 10 * 60 * 1000);
-        });
-
-        /**
-         * Render MOENV AQI data onto the 340x260 Japanese widget & detail breakdown panel
-         */
-        function renderWidgetData(data) {
-            const aqi = parseInt(data.aqi, 10);
-            const theme = getThemeByAqi(aqi);
-
-            // Update CSS Variables
-            const container = document.getElementById('aqi-widget-container');
-            container.style.setProperty('--flag-color', theme.color);
-            container.style.setProperty('--flag-bg-soft', theme.bgSoft);
-            container.style.setProperty('--flag-border', theme.border);
-
-            // Update SVG Flag & Kanji Seal
-            document.getElementById('svg-flag-body').setAttribute('fill', theme.color);
-            document.getElementById('svg-flag-kanji').textContent = theme.kanji;
-            document.getElementById('live-indicator').style.backgroundColor = theme.color;
-
-            // Update Badges & Numbers
-            const badgeTitle = document.getElementById('flag-badge-title');
-            badgeTitle.textContent = theme.flagName;
-            badgeTitle.style.backgroundColor = theme.color;
-
-            document.getElementById('aqi-number').textContent = isNaN(aqi) ? '--' : aqi;
-            document.getElementById('main-pollutant').textContent = data.pollutant || '細懸浮微粒';
-            document.getElementById('flag-short-rule').textContent = theme.shortRule;
-
-            // Update Header Info & Timestamp
-            document.getElementById('weather-temp-text').textContent = data.sourceLabel || '環境部監測網';
-            document.getElementById('update-time-text').textContent = data.publishTime || '即時更新';
-
-            // Update Bottom Campus Activity Guidance
-            document.getElementById('guidance-emoji').textContent = theme.emoji;
-            document.getElementById('sensitive-tag').textContent = theme.sensitiveTag;
-            document.getElementById('guidance-desc').textContent = theme.desc;
-        }
-
-        /**
-         * Try fetching directly from Taiwan MOENV Open Data API (aqx_p_432) for SiteID 25 (西屯)
-         */
-        async function fetchFromMoenvOfficial() {
-            for (const apiKey of STATION_CONFIG.moenvKeys) {
-                const targetUrl = `https://data.moenv.gov.tw/api/v2/aqx_p_432?api_key=${apiKey}&limit=100&sort=ImportDate%20desc&format=JSON`;
-                const urlsToTry = [
-                    targetUrl,
-                    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-                    `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
-                ];
-
-                for (const url of urlsToTry) {
-                    try {
-                        const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 8000);
-                        const res = await fetch(url, { signal: controller.signal });
-                        clearTimeout(timeoutId);
-
-                        if (!res.ok) continue;
-                        const json = await res.json();
-                        const records = json.records || json;
-                        if (Array.isArray(records)) {
-                            const xitun = records.find(
-                                r => String(r.siteid) === '25' || r.sitename === '西屯'
-                            );
-                            if (xitun && xitun.aqi) {
-                                const rawTime = xitun.publishtime || '';
-                                const timeMatch = rawTime.match(/(\d{2}:\d{2})/);
-                                const shortTime = timeMatch ? `${timeMatch[1]} 發布` : '即時發布';
-
-                                return {
-                                    aqi: parseInt(xitun.aqi, 10),
-                                    pollutant: xitun.pollutant || '細懸浮微粒',
-                                    publishTime: shortTime,
-                                    sourceLabel: '環境部開放資料 API'
-                                };
-                            }
-                        }
-                    } catch (e) {
-                        // Continue to next endpoint
-                    }
-                }
-            }
-            return null;
-        }
-
-        /**
-         * 精準抓取目標網頁 WebWidget.aspx HTML 的備援方案
-         */
-        async function fetchFromWebWidgetHtml() {
-            try {
-                // 【關鍵更新】：加入時間戳記 (Timestamp) 破除 Proxy 快取，確保每次抓的都是當下最新鮮的網頁
-                const now = new Date().getTime();
-                const targetUrl = `https://airtw.moenv.gov.tw/AirQuality_APIs/WebWidget.aspx?site=25&_t=${now}`;
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-                
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 8000);
-                const res = await fetch(proxyUrl, { signal: controller.signal });
-                clearTimeout(timeoutId);
-                
-                if (!res.ok) return null;
-                const json = await res.json();
-                const html = json.contents;
-                
-                // 更精準的解析：尋找 WebWidget HTML 中的 AQI 數值區塊 (<div class="val">數值</div>)
-                const aqiMatch = html.match(/<div[^>]*class=["']val["'][^>]*>\s*(\d{1,3})\s*<\/div>/i) || html.match(/AQI[\s\S]{1,50}?(\d{1,3})/i);
-                
-                if (aqiMatch && aqiMatch[1]) {
-                    // 擷取網頁上的發布時間
-                    const timeMatch = html.match(/(\d{4}\/\d{2}\/\d{2}\s\d{2}:\d{2})/);
-                    const shortTime = timeMatch && timeMatch[1] ? `${timeMatch[1].split(' ')[1]} 發布` : '即時同步';
-
-                    // 擷取主要污染物
-                    const polMatch = html.match(/指標污染物[：:]\s*([A-Za-z0-9.]+)/);
-                    let pollutantName = '細懸浮微粒';
-                    if (polMatch && polMatch[1]) {
-                        if (polMatch[1].includes('PM2.5')) pollutantName = '細懸浮微粒';
-                        else if (polMatch[1].includes('PM10')) pollutantName = '懸浮微粒';
-                        else if (polMatch[1].includes('O3')) pollutantName = '臭氧';
-                        else pollutantName = polMatch[1];
-                    }
-
-                    return {
-                        aqi: parseInt(aqiMatch[1], 10),
-                        pollutant: pollutantName, 
-                        publishTime: shortTime,
-                        sourceLabel: 'WebWidget 官方同步'
-                    };
-                }
-            } catch (e) {
-                console.warn("WebWidget HTML 爬取失敗:", e);
-            }
-            return null;
-        }
-
-        /**
-         * Fetch Real-Time Air Quality for 臺中市西屯測站 (ID: 25)
-         * 確保與官方網頁數據絕對同步
-         */
-        async function fetchXitunAirQuality(showSpinner = false) {
-            const refreshIcon = document.getElementById('refresh-icon');
-            if (showSpinner && refreshIcon) {
-                refreshIcon.classList.add('animate-spin');
-            }
-
-            try {
-                // 狀態顯示更新中...
-                document.getElementById('update-time-text').textContent = '與環境部同步中...';
-
-                // 1. 【關鍵修改】優先爬取使用者指定的 WebWidget.aspx 網頁 (確保與肉眼所見 100% 同步)
-                const widgetData = await fetchFromWebWidgetHtml();
-                if (widgetData) {
-                    renderWidgetData(widgetData);
-                    return;
-                }
-
-                // 2. 若網頁爬取代理伺服器失敗，再嘗試官方開放資料 API 作為備案
-                const moenvData = await fetchFromMoenvOfficial();
-                if (moenvData) {
-                    renderWidgetData(moenvData);
-                    return;
-                }
-
-                // 3. 雙重失效時，不再給予假數值，明確提示連線失敗 (顯示 "--")
-                document.getElementById('aqi-number').textContent = '--';
-                document.getElementById('update-time-text').textContent = '連線超時，請重試';
-
-            } finally {
-                if (refreshIcon) {
-                    setTimeout(() => refreshIcon.classList.remove('animate-spin'), 450);
-                }
-            }
-        }
-
-        /**
-         * Toggle the inside-widget MOE Air Quality Flag Guide Modal
-         */
-        function toggleGuideModal(show) {
-            const modal = document.getElementById('guide-modal');
-            if (show) {
-                modal.classList.remove('hidden');
-            } else {
-                modal.classList.add('hidden');
-            }
-        }
+        // 每 10 分鐘自動重新整理一次畫面
+        setInterval(reloadAqi, 10 * 60 * 1000);
     </script>
+
 </body>
 </html>
