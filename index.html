@@ -17,18 +17,18 @@
             min-height: 100vh;
         }
 
-        /* 固定 340x260 日式白底外框 */
+        /* 寬度固定 340px，高度自動容納 260px 嵌入頁框與放大後的叮嚀區 */
         .widget-box {
             width: 340px;
-            height: 300px;
+            height: auto;
             background: #FFFFFF;
             border: 2px solid #2B2B2B;
             border-radius: 10px;
-            padding: 8px 10px;
+            padding: 10px 12px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            gap: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
         }
 
@@ -38,7 +38,7 @@
             align-items: center;
             justify-content: space-between;
             border-bottom: 1px solid #E5E7EB;
-            padding-bottom: 5px;
+            padding-bottom: 6px;
         }
 
         .title-group {
@@ -50,33 +50,36 @@
         .stamp {
             border: 1.5px solid #C53D43;
             color: #C53D43;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 900;
-            padding: 0px 4px;
+            padding: 1px 5px;
             border-radius: 3px;
             background: rgba(197, 61, 67, 0.05);
         }
 
         .title {
-            font-size: 13px;
+            font-size: 15px;
             font-weight: 900;
             color: #2B2B2B;
         }
 
         .reload-btn {
-            font-size: 10px;
+            font-size: 11px;
             color: #444;
             background: #F8FAFC;
             border: 1px solid #CBD5E1;
             border-radius: 4px;
-            padding: 2px 6px;
+            padding: 3px 7px;
             cursor: pointer;
         }
+        .reload-btn:hover {
+            background: #E2E8F0;
+        }
 
-        /* 2. 環境部官方即時 AQI 顯示區 */
+        /* 2. 環境部官方即時 AQI 嵌入頁框 (高度固定為 260px) */
         .iframe-wrap {
             width: 100%;
-            height: 250px;
+            height: 260px;
             border: 1px solid #E2E8F0;
             border-radius: 6px;
             overflow: hidden;
@@ -91,8 +94,8 @@
 
         /* 3. 底部動態學生提醒與叮嚀卡 */
         .reminder-card {
-            border-radius: 6px;
-            padding: 6px 8px;
+            border-radius: 8px;
+            padding: 10px 10px;
             border: 1.5px solid #DFC278;
             background-color: #FDF7E4;
             transition: all 0.3s ease;
@@ -102,31 +105,35 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 3px;
+            margin-bottom: 6px;
+            gap: 6px;
         }
 
         .flag-tag {
-            font-size: 11px;
+            font-size: 12.5px;
             font-weight: 900;
             color: #FFFFFF;
             background-color: #C99833;
-            padding: 1px 6px;
-            border-radius: 4px;
+            padding: 3px 7px;
+            border-radius: 5px;
+            white-space: nowrap;
+            letter-spacing: 0.2px;
         }
 
-        /* 等級切換小圓鈕 (可手動點選或自動切換) */
+        /* 等級切換小圓鈕 (優化間距，確保同一列不換行) */
         .level-dots {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
+            flex-shrink: 0;
         }
 
         .lvl-btn {
-            font-size: 9px;
+            font-size: 11px;
             font-family: sans-serif;
             border: 1px solid rgba(0,0,0,0.15);
-            border-radius: 3px;
-            padding: 1px 4px;
+            border-radius: 4px;
+            padding: 2px 4px;
             cursor: pointer;
             color: #fff;
             opacity: 0.55;
@@ -136,19 +143,21 @@
             opacity: 1;
             font-weight: bold;
             transform: scale(1.06);
-            box-shadow: 0 0 0 1px #2B2B2B;
+            box-shadow: 0 0 0 1.5px #2B2B2B;
         }
 
+        /* 學生叮嚀內文 (字體 14px，行距加寬) */
         .student-text {
             font-family: sans-serif;
-            font-size: 11px;
+            font-size: 14px;
             color: #2B2B2B;
-            line-height: 1.35;
+            line-height: 1.5;
             margin: 0;
         }
 
         .student-text strong {
             color: #000;
+            font-size: 14.5px;
         }
     </style>
 </head>
@@ -164,7 +173,7 @@
             <button class="reload-btn" onclick="reloadAqi()">↻ 即時更新</button>
         </div>
 
-        <!-- 2. 環境部官方即時 AQI 顯示區 -->
+        <!-- 2. 環境部官方即時 AQI 顯示區 (高 260px) -->
         <div class="iframe-wrap">
             <iframe id="moenv-frame" src="https://airtw.moenv.gov.tw/AirQuality_APIs/WebWidget.aspx?site=25" title="西屯區即時空氣品質"></iframe>
         </div>
@@ -172,7 +181,7 @@
         <!-- 3. 依 AQI 等級變化的學生提醒與叮嚀區 -->
         <div id="reminder-card" class="reminder-card">
             <div class="reminder-top">
-                <span id="flag-tag" class="flag-tag">🚩 黃旗 (AQI 51-100) 普通</span>
+                <span id="flag-tag" class="flag-tag">🚩 黃旗 (51-100) 普通</span>
                 <div class="level-dots" title="點選查看不同 AQI 等級的學生叮嚀">
                     <button class="lvl-btn" style="background:#4A8B5B;" onclick="setReminder(0)">綠</button>
                     <button class="lvl-btn active" style="background:#C99833;" onclick="setReminder(1)">黃</button>
@@ -192,7 +201,7 @@
         const AQI_REMINDERS = [
             {
                 max: 50,
-                title: '🚩 綠旗 (AQI 0-50) 良好',
+                title: '🚩 綠旗 (0-50) 良好',
                 color: '#4A8B5B',
                 bg: '#E9F3EC',
                 border: '#8BB896',
@@ -200,7 +209,7 @@
             },
             {
                 max: 100,
-                title: '🚩 黃旗 (AQI 51-100) 普通',
+                title: '🚩 黃旗 (51-100) 普通',
                 color: '#C99833',
                 bg: '#FDF7E4',
                 border: '#DFC278',
@@ -208,7 +217,7 @@
             },
             {
                 max: 150,
-                title: '🚩 橘旗 (AQI 101-150) 敏感警戒',
+                title: '🚩 橘旗 (101-150) 敏感警戒',
                 color: '#D16B30',
                 bg: '#FCEEDF',
                 border: '#E0A570',
@@ -216,7 +225,7 @@
             },
             {
                 max: 200,
-                title: '🚩 紅旗 (AQI 151-200) 不健康',
+                title: '🚩 紅旗 (151-200) 不健康',
                 color: '#C53D43',
                 bg: '#FBE6E6',
                 border: '#D88A8C',
@@ -224,7 +233,7 @@
             },
             {
                 max: 999,
-                title: '🚩 紫旗 (AQI 201+) 非常不健康',
+                title: '🚩 紫旗 (201+) 非常不健康',
                 color: '#7A4988',
                 bg: '#F2E8F5',
                 border: '#B592C4',
@@ -262,7 +271,7 @@
             else setReminder(4);
         }
 
-        // 嘗試在背景透過 JSONP 抓取西屯站 AQI 以自動切換對應顏色的叮嚀（不影響上方官網畫面）
+        // 背景透過 JSONP 抓取西屯站 AQI 以自動切換對應顏色的叮嚀
         function syncAqiLevelInBackground() {
             const cbName = 'aqi_cb_' + Date.now();
             const script = document.createElement('script');
